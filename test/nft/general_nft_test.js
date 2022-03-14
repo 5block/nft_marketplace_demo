@@ -13,7 +13,7 @@ describe("NFT", function () {
         this.timeout(120000);
         [owner, user1, user2] = await ethers.getSigners();
         const NFT = await ethers.getContractFactory("SimpleERC721");
-        contracts.pet = await upgrades.deployProxy(NFT)
+        contracts.pet = await NFT.deploy()
         await contracts.pet.deployed();
         console.log('address',contracts.pet.address)
     });
@@ -22,12 +22,9 @@ describe("NFT", function () {
         expect(await contracts.pet.symbol()).to.be.equal("SE721");
     });
 
-    it("cannot initialize a second time", async () => {
-        return expect(contracts.pet.initialize()).eventually.be.rejectedWith('Initializable: contract is already initialized');
-    });
-
     it("mint one pet", async function () {
-        const minted = await contracts.pet.mintBuy(owner.address, 1, 1, {gasLimit: 70_000_000});
+        
+        const minted = await contracts.pet.mint(owner.address);
         const tokenId = await contracts.pet.tokenOfOwnerByIndex(owner.address,0);
     });
 
@@ -35,17 +32,18 @@ describe("NFT", function () {
         const tokenId = await contracts.pet.tokenOfOwnerByIndex(owner.address,0);
         const tokenUri = await contracts.pet.tokenURI(tokenId);
         const nftOwner = await contracts.pet.ownerOf(tokenId);
-        expect(tokenUri).to.be.a('string').and.satisfy(msg => msg.startsWith('xxx'));
+        // expect(tokenUri).to.be.a('string').and.satisfy(msg => msg.startsWith('xxx'));
+        expect(tokenUri).to.be.a('string').and.satisfy(msg => msg.startsWith('https'));
         expect(nftOwner).to.equal(owner.address);
     });
 
-    it("change prefix the mint ", async function () {
-        // Change prefix
-        let prefix = 'https://google.com/pet/';
-        let suffix = '.json';
-        await contracts.pet.setTokenURIAffixes(prefix, suffix);
-        const tokenId = await contracts.pet.tokenOfOwnerByIndex(owner.address,0);
-        const tokenUri = await contracts.pet.tokenURI(tokenId);
-        expect(tokenUri).to.be.a('string').and.satisfy(msg => msg.startsWith('https://google.com/pet/'));
+    it("Pauses all token transfers", async function () {
+        await contracts.pet.pause();
+        expect(await contracts.pet.paused()).to.be.true;
+    });
+
+    it("Un-pauses all token transfers", async function () {
+        await contracts.pet.unpause();
+        expect(await contracts.pet.paused()).to.be.false;
     });
 });
