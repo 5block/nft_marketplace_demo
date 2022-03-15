@@ -14,8 +14,7 @@ async function getTestToken(address, nftContract) {
 describe('NFT Marketplace', () => {
     const contracts = {};
     const tokens = {};
-    let owner; let user1; let
-        user2;
+    let owner; let user1; let user2;
     let feeRate = 15;
     const price = 10000;
 
@@ -25,7 +24,7 @@ describe('NFT Marketplace', () => {
         const NFT = await ethers.getContractFactory('SimpleERC721');
         const Marketplace = await ethers.getContractFactory('Marketplace');
 
-        contracts.nft = await upgrades.deployProxy(NFT);
+        contracts.nft = await NFT.deploy();
         contracts.marketplace = await upgrades.deployProxy(Marketplace, [feeRate]);
 
         await contracts.nft.deployed();
@@ -36,7 +35,11 @@ describe('NFT Marketplace', () => {
         for (let i = 1; i <= 10; i += 1) {
             tokens[user1].push(ethers.utils.id(`token${i}`));
         }
-        await contracts.nft.batchMint(user1.address, tokens[user1], 1);
+        // replace batchMint by mint 10 times
+        // await contracts.nft.batchMint(user1.address, tokens[user1], 1);
+        for (let i = 1; i <= 10; i += 1) {
+            const minted = await contracts.nft.mint(user1.address);
+        }
 
         contracts.user1 = {
             nft: contracts.nft.connect(user1),
@@ -152,8 +155,9 @@ describe('NFT Marketplace', () => {
 
     describe('Tradings with ERC20', () => {
         before('deploy erc20 token', async () => {
-            const ERC20 = await ethers.getContractFactory('TestERC20');
-            contracts.erc20 = await ERC20.deploy(BN.from('10000000000000'));
+            const ERC20 = await ethers.getContractFactory('SimpleERC20');
+            contracts.erc20 = await ERC20.deploy();
+            await contracts.erc20.deployed();
             contracts.user2.erc20 = contracts.erc20.connect(user2);
 
             // give user2 some tokens to spend
